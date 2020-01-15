@@ -1,7 +1,10 @@
 import json
 import requests
 import pandas as pd
+import os
 
+
+from urllib.parse import urljoin
 from tqdm import tqdm
 from lxml import html
 from lxml.etree import ParseError
@@ -15,8 +18,7 @@ def get_links_tjornal(query):
         try:
             print('Page number: ', num_page)
             url = f'https://tjournal.ru/search_ajax/v2/{query}/content/relevant/{num_page}'
-            request = requests.get(url)
-            request_js = json.loads(request.content)
+            request_js = json.loads(requests.get(url).content)
             search_results = html.fromstring(request_js['data']['feed_html'])\
                                  .xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "content-feed__link", " " ))]')
             queried_urls.extend([i.get('href') for i in search_results])
@@ -76,19 +78,17 @@ def collect_texts_tjornal(queries):
 def get_links_meduza(query):
     num_page = 0
     queried_urls = []
+    has_next = True
 
-    while not is_finished:
+    while has_next:
         try:
             print('Page number: ', num_page)
             url = f'https://meduza.io/api/w5/search?term={query}&page={num_page}&per_page=100&locale=ru'
-            request = requests.get(url)
-            request_js = json.loads(request.content)
-            search_results = html.fromstring(request_js['data']['feed_html']) \
-                .xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "content-feed__link", " " ))]')
-            queried_urls.extend([i.get('href') for i in search_results])
-            is_finished = request_js['data']['is_finished']
+            request_js = json.loads(requests.get(url).content)
+            queried_urls.extend([urljoin('https://meduza.io', i) for i in request_js['collection']])
+            has_next = request_js['has_next']
             num_page += 1
 
         except ParseError as e:
-            print(f'https://tjournal.ru/search_ajax/v2/{query}/content/relevant/{num_page} empty request')
+            print(f'https://meduza.io/api/w5/search?term={query}&page={num_page}&per_page=100&locale=ru empty request')
     return queried_urls

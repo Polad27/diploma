@@ -24,16 +24,17 @@ months_dict = {
     'ноября': 'ноябрь',
     'декабря': 'декабрь'
 }
+/html/body/div[1]/div[3]/section/div/div[2]/div[2]/section/ol/li[179]/article/a
+req = requests.get('https://nplus1.ru/search?q=нейросеть')
+page = html.fromstring(req.content)
 
-req = requests.get('https://meduza.io/feature/2020/01/16/meduzoid-iz-serdtsa-krysy-i-kiborgi-iz-lyagushachiey-ikry')
-page = html.fromstring(req.text)
+a = page.xpath('//h3')
 
-a = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "Timestamp-root", " " ))]')[0]
-re.sub(f"({'|'.join(months_dict.keys())})", a.text.strip())
+re.sub(f"({'|'.join(months_dict.keys())})", a)
 
 df = pd.read_csv('tjornal.csv')
 
-page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "content-header__title", " " ))]')[0].text.strip()
+a = page.xpath('//*[(@id = "results")]//*[contains(concat( " ", @class, " " ), concat( " ", "caption", " " ))]')
 
 pd.to_datetime('19:03, 11 январь 2020', format='%H:%M, %d %B %Y')
 a = pd.to_datetime('23.02.2020 19:30')
@@ -51,3 +52,5 @@ container = {
 df = pd.read_csv('meduza.csv', parse_dates=['article_time'])
 df.head()
 df.shape
+a[0]
+len(a)

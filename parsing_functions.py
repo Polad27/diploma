@@ -40,14 +40,14 @@ def extract_articles_tjornal(url, container):
     try:
         article_head = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "content-header__title", " " ))]')[0].text.strip()
         article_time = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "time", " " ))]')[0].get('title')
-        article_author = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "content-header-author__name", " " ))]')[0].text.strip()
+        # article_author = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "content-header-author__name", " " ))]')[0].text.strip()
         article_content = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "content--full", " " ))] | //*[contains(concat( " ", @class, " " ), concat( " ", "content--full", " " ))]//p')
         article_content = ' '.join([i.text.strip() for i in article_content if i.text is not None])
 
         container_extended['article_url'].append(url)
         container_extended['article_time'].append(article_time)
         container_extended['article_head'].append(article_head)
-        container_extended['article_author'].append(article_author)
+        # container_extended['article_author'].append(article_author)
         container_extended['article_content'].append(article_content)
 
     except:
@@ -66,7 +66,7 @@ def collect_texts_tjornal(queries):
         'article_url': [],
         'article_time': [],
         'article_head': [],
-        'article_author': [],
+        # 'article_author': [],
         'article_content': []
     }
 
@@ -102,44 +102,45 @@ def extract_articles_meduza(url, container):
     request = requests.get(url)
     page = html.fromstring(request.text)
     try:
-        article_head = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "RichTitle-root", " " ))]')[0]\
+
+        article_head = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "RichTitle-root", " " ))] | //*[contains(concat( " ", @class, " " ), concat( " ", "SimpleTitle-root", " " ))]')[0]\
                            .text.strip()
         article_time = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "Timestamp-root", " " ))]')[0]\
                            .text.strip()
-        article_author = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "content-header-author__name", " " ))]')[0]\
-                             .text.strip()
-        article_content = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "content--full", " " ))] | //*[contains(concat( " ", @class, " " ), concat( " ", "content--full", " " ))]//p')
+        # article_author = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "MaterialNote-note_caption", " " ))]//strong')\
+        #                      .text.strip()
+        article_content = page.xpath('//p')
         article_content = ' '.join([i.text.strip() for i in article_content if i.text is not None])
 
         container_extended['article_url'].append(url)
         container_extended['article_time'].append(article_time)
         container_extended['article_head'].append(article_head)
-        container_extended['article_author'].append(article_author)
+        # container_extended['article_author'].append(article_author)
         container_extended['article_content'].append(article_content)
 
-        return container_extended
     except:
-        print(url)
-        raise Exception("Cannot scrap")
+        print(f'Cannot scrap: {url}')
+        # raise Exception("Cannot scrap")
+    return container_extended
 
 def collect_texts_meduza(queries):
     link_list = []
     for query in queries:
         print(f'Getting links for query: {query}')
-        link_list.extend(get_links_tjornal(query))
+        link_list.extend(get_links_meduza(query))
 
     container = {
         'article_url': [],
         'article_time': [],
         'article_head': [],
-        'article_author': [],
+        # 'article_author': [],
         'article_content': []
     }
 
     print('Scraping websites')
     for url in tqdm(link_list):
-        container = extract_articles_tjornal(url, container)
+        container = extract_articles_meduza(url, container)
 
     df = pd.DataFrame(container)
-    df['article_time'] = df.article_time.str.slice(0, 16, 1), format='%d.%m.%Y %H:%M'
-    df.to_csv('tjornal.csv', index=False)
+    df['article_time'] = df.article_time.str.slice(0, 16, 1)
+    df.to_csv('meduza.csv', index=False)

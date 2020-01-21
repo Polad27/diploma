@@ -72,7 +72,7 @@ def collect_texts_tjornal(queries):
     }
 
     print('Scraping websites')
-    for url in tqdm(link_list):
+    for url in tqdm(set(link_list)):
         container = extract_articles_tjornal(url, container)
 
     df = pd.DataFrame(container)
@@ -158,7 +158,7 @@ def collect_texts_meduza(queries):
     }
 
     print('Scraping websites')
-    for url in tqdm(link_list):
+    for url in tqdm(set(link_list)):
         container = extract_articles_meduza(url, container)
 
     df = pd.DataFrame(container)
@@ -172,21 +172,10 @@ def collect_texts_meduza(queries):
 
 
 def get_links_nplus(query):
-    num_page = 0
-    queried_urls = []
-    has_next = True
+    search_page = html.fromstring(requests.get(f'https://nplus1.ru/search?q={query}').content)
+    queried_urls = search_page.xpath('//*[(@id = "results")]//*[contains(concat( " ", @class, " " ), concat( " ", "caption", " " ))]')
+    queried_urls = [urljoin('https://nplus1.ru', i.getparent().get('href')) for i in queried_urls]
 
-    while has_next:
-        try:
-            print('Page number: ', num_page)
-            url = f'https://nplus1.ru/search?q={query}'
-            request_js = json.loads(requests.get(url).content)
-            queried_urls.extend([urljoin('https://meduza.io', i) for i in request_js['collection']])
-            has_next = request_js['has_next']
-            num_page += 1
-
-        except ParseError as e:
-            print(f'https://meduza.io/api/w5/search?term={query}&page={num_page}&per_page=100&locale=ru empty request')
     return queried_urls
 
 def extract_articles_nplus(url, container):
@@ -195,11 +184,8 @@ def extract_articles_nplus(url, container):
     page = html.fromstring(request.text)
     try:
 
-        article_head = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "RichTitle-root", " " ))] | '
-                                  '//*[contains(concat( " ", @class, " " ), concat( " ", "SimpleTitle-root", " " ))]')[0]\
-                           .text.strip()
-        article_time = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "Timestamp-root", " " ))]')[0]\
-                           .text.strip()
+        article_head = page.xpath('//h1')[0].text.strip()
+        article_time = page.xpath('//time//span')[0].getparent().get('data-unix')
         # article_author = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "MaterialNote-note_caption", " " ))]//strong')\
         #                      .text.strip()
         article_content = page.xpath('//p')
@@ -217,27 +203,10 @@ def extract_articles_nplus(url, container):
     return container_extended
 
 def collect_texts_nplus(queries):
-
-    months_dict = {
-        'января': 'январь',
-        'февраля': 'февраль',
-        'марта': 'март',
-        'апреля': 'апрель',
-        'мая': 'май',
-        'июня': 'июнь',
-        'июля': 'июль',
-        'августа': 'август',
-        'сентября': 'сентябрь',
-        'октября': 'октябрь',
-        'ноября': 'ноябрь',
-        'декабря': 'декабрь'
-    }
-
     link_list = []
     for query in queries:
         print(f'Getting links for query: {query}')
-        link_list.extend(get_links_meduza(query))
-
+        link_list.extend(get_links_nplus(query))
     container = {
         'article_url': [],
         'article_time': [],
@@ -247,14 +216,10 @@ def collect_texts_nplus(queries):
     }
 
     print('Scraping websites')
-    for url in tqdm(link_list):
-        container = extract_articles_meduza(url, container)
+    for url in tqdm(set(link_list)):
+        container = extract_articles_nplus(url, container)
 
     df = pd.DataFrame(container)
-    tmp_df = df.article_time.str.split(' ', expand=True)
-    tmp_df[2] = tmp_df[2].replace(months_dict)
 
-    df['article_time'] = ''
-    df['article_time'] = df['article_time'].str.cat(tmp_df, sep=' ')
-    df['article_time'] = pd.to_datetime(df['article_time'], format='%H:%M, %d %B %Y')
-    df.to_csv('meduza.csv', index=False)
+    df['article_time'] = pd.to_datetime(df['article_time'], unit='s')
+    df.to_csv('nplus.csv', index=False)

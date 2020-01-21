@@ -24,8 +24,8 @@ months_dict = {
     'ноября': 'ноябрь',
     'декабря': 'декабрь'
 }
-/html/body/div[1]/div[3]/section/div/div[2]/div[2]/section/ol/li[179]/article/a
-req = requests.get('https://nplus1.ru/search?q=нейросеть')
+
+req = requests.get('https://nplus1.ru/news/2019/01/28/debiasing-faces')
 page = html.fromstring(req.content)
 
 a = page.xpath('//h3')
@@ -34,7 +34,7 @@ re.sub(f"({'|'.join(months_dict.keys())})", a)
 
 df = pd.read_csv('tjornal.csv')
 
-a = page.xpath('//*[(@id = "results")]//*[contains(concat( " ", @class, " " ), concat( " ", "caption", " " ))]')
+a = page.xpath('//p')
 
 pd.to_datetime('19:03, 11 январь 2020', format='%H:%M, %d %B %Y')
 a = pd.to_datetime('23.02.2020 19:30')

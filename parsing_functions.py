@@ -202,6 +202,7 @@ def extract_articles_nplus(url, container):
         # raise Exception("Cannot scrap")
     return container_extended
 
+
 def collect_texts_nplus(queries):
     link_list = []
     for query in queries:
@@ -223,3 +224,48 @@ def collect_texts_nplus(queries):
 
     df['article_time'] = pd.to_datetime(df['article_time'], unit='s')
     df.to_csv('nplus.csv', index=False)
+
+
+def get_links_village(query):
+    n_pages = int(html.fromstring(requests.get(f'https://www.the-village.ru/search?query={query}').content)\
+                  .xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "paginator", " " ))]')[0]\
+                  .getchildren()[0].getchildren()[-1].text_content())
+    print(n_pages)
+    queried_urls = []
+    for page_num in range(1, n_pages + 1):
+        print(page_num)
+        print(f'https://www.the-village.ru/search?query={query}&page={page_num}')
+        search_page = html.fromstring(requests.get(f'https://www.the-village.ru/search?query={query}&page={page_num}').content)
+        search_page_links = search_page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "post-link", " " ))]')
+        queried_urls.extend([urljoin('https://www.the-village.ru', i.get('href'))  for i in search_page_links])
+
+    return queried_urls
+
+
+def extract_articles_village(url, container):
+    container_extended = container.copy()
+    request = requests.get(url)
+    page = html.fromstring(request.text)
+    try:
+
+        article_head = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "RichTitle-root", " " ))] | '
+                                  '//*[contains(concat( " ", @class, " " ), concat( " ", "SimpleTitle-root", " " ))]')[
+            0] \
+            .text.strip()
+        article_time = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "Timestamp-root", " " ))]')[0] \
+            .text.strip()
+        # article_author = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "MaterialNote-note_caption", " " ))]//strong')\
+        #                      .text.strip()
+        article_content = page.xpath('//p')
+        article_content = ' '.join([i.text.strip() for i in article_content if i.text is not None])
+
+        container_extended['article_url'].append(url)
+        container_extended['article_time'].append(article_time)
+        container_extended['article_head'].append(article_head)
+        # container_extended['article_author'].append(article_author)
+        container_extended['article_content'].append(article_content)
+
+    except:
+        print(f'Cannot scrap: {url}')
+        # raise Exception("Cannot scrap")
+    return container_extended

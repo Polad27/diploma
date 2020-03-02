@@ -1,4 +1,4 @@
-import parsing_functions as utils
+from scraping import parsing_functions as utils
 
 queries = ['искусственный интеллект', 'нейросети', 'машинное обучение']
 

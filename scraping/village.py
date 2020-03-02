@@ -1,16 +1,11 @@
-import json
 import requests
-import pandas as pd
 import locale
-import os
 
-from urllib.parse import urljoin
-from tqdm import tqdm
 from lxml import html
-from lxml.etree import ParseError
+
 locale.setlocale(locale.LC_TIME, 'rus_rus')
 
-import parsing_functions as utils
+from scraping import parsing_functions as utils
 
 req = requests.get('https://www.the-village.ru/search?query=искусственный интеллект')
 page = html.fromstring(req.content)

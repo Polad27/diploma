@@ -1,11 +1,10 @@
 import requests
-import json
 import locale
 import re
 locale.setlocale(locale.LC_TIME, 'rus_rus')
 import pandas as pd
 from lxml import html
-from parsing_functions import get_links_meduza
+from scraping.parsing_functions import get_links_meduza
 query = 'искусственный интеллект'
 search_result = get_links_meduza(query)
 print(search_result)
@@ -32,7 +31,7 @@ a = page.xpath('//h3')
 
 re.sub(f"({'|'.join(months_dict.keys())})", a)
 
-df = pd.read_csv('tjornal.csv')
+df = pd.read_csv('../data/tjornal.csv')
 
 a = page.xpath('//p')
 
@@ -49,7 +48,7 @@ container = {
     'article_content': []
 }
 
-df = pd.read_csv('meduza.csv', parse_dates=['article_time'])
+df = pd.read_csv('../data/meduza.csv', parse_dates=['article_time'])
 df.head()
 df.shape
 a[0]

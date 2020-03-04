@@ -36,7 +36,7 @@ def get_links_rbc(query):
     })
 
 
-def extract_articles_rbc(url):
+def extract_article_content_rbc(url):
     request = requests.get(url)
     page = html.fromstring(request.text)
 
@@ -50,8 +50,3 @@ def extract_articles_rbc(url):
 
 df = get_links_rbc('искусственный интеллект')
 df = df.loc[~df.article_urls.str.startswith('https://pro.rbc')]
-df['article_content'] = df.iloc[:100].article_urls.progress_apply(extract_articles_rbc)
-df.article_content.values[0]
-df['lol'], df['kek'], df['azaza'] = zip(*df.article_urls.apply(lambda x: (np.random.randint(10, 20), np.random.randint(40, 80), np.random.randint(-20, -10))))
-
-df.head()

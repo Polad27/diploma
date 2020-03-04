@@ -8,6 +8,7 @@ from lxml import html
 
 
 tqdm.pandas()
+queries = ['искусственный интеллект', 'нейросети', 'машинное обучение']
 
 def get_links_rbc(query):
     isfinal = False
@@ -30,9 +31,9 @@ def get_links_rbc(query):
         offset += limit
 
     return pd.DataFrame({
-        'article_urls': article_urls,
-        'article_times': article_times,
-        'article_titles': article_titles
+        'article_url': article_urls,
+        'article_time': article_times,
+        'article_title': article_titles
     })
 
 
@@ -48,5 +49,5 @@ def extract_article_content_rbc(url):
         print(f'Cannot scrap: {url}')
         return np.nan
 
-df = get_links_rbc('искусственный интеллект')
-df = df.loc[~df.article_urls.str.startswith('https://pro.rbc')]
+df = pd.concat([get_links_rbc(q) for q in tqdm(queries)]).drop_duplicates()
+df['article_content'] = df.article_url.progress_apply(extract_article_content_rbc)

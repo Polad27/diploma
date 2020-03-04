@@ -202,7 +202,6 @@ def extract_articles_nplus(url, container):
         # raise Exception("Cannot scrap")
     return container_extended
 
-
 def collect_texts_nplus(queries):
     link_list = []
     for query in queries:

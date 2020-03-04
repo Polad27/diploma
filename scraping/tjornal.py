@@ -1,11 +1,17 @@
 import requests
 import json
+import unicodedata as unicode
+import re
 import pandas as pd
+import locale
 
 from tqdm import tqdm
 from lxml import html
 
+
 tqdm.pandas()
+
+
 
 queries = ['искусственный интеллект', 'нейросети', 'машинное обучение']
 
@@ -34,45 +40,46 @@ def get_links_tjornal(query):
 
 
 def extract_articles_tjornal(url):
+
+    months_dict = {
+        'янв': 'Jan',
+        'фев': 'Feb',
+        'мар': 'Mar',
+        'апр': 'Apr',
+        'май': 'May',
+        'июн': 'Jun',
+        'июл': 'Jul',
+        'авг': 'Aug',
+        'сен': 'Sep',
+        'окт': 'Oct',
+        'ноя': 'Nov',
+        'дек': 'Dec',
+        'мая': 'May'
+    }
+
     request = requests.get(url)
     page = html.fromstring(request.text)
+
+    article_title = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "content-header__title", " " ))]')[0].text.strip()
     try:
-        article_title = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "content-header__title", " " ))]')[0].text.strip()
-        article_time = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "time", " " ))]')[0].get('data-date')
-        # article_author = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "content-header-author__name", " " ))]')[0].text.strip()
-        article_content = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "content--full", " " ))] | '
-                                     '//*[contains(concat( " ", @class, " " ), concat( " ", "content--full", " " ))]//p')
-        article_content = ' '.join([i.text.strip() for i in article_content if i.text is not None])
-        return article_time, article_title, article_content
+        article_time = int(page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "time", " " ))]')[0].get('data-date'))
+        print(article_time)
     except:
-        print(f'Cannot scrap {url}')
+        article_time = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "time", " " ))]')[0].text
+        article_time = unicode.normalize('NFKD', article_time).split(' ')
+        article_time[1] = months_dict[article_time[1]]
+        article_time = pd.to_datetime(' '.join(article_time)).value * 10**-9
+        print(article_time, pd.to_datetime(article_time, unit='s'))
+
+    article_content = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "content--full", " " ))] | '
+                                 '//*[contains(concat( " ", @class, " " ), concat( " ", "content--full", " " ))]//p')
+    article_content = ' '.join([i.text.strip() for i in article_content if i.text is not None])
+
+    return article_time, article_title, article_content
 
 
 
 df = pd.concat([get_links_tjornal(q) for q in tqdm(queries)]).drop_duplicates()
 df['article_time'], df['article_title'], df['article_content'] = zip(*df.article_url.progress_apply(extract_articles_tjornal))
-df['article_time'] = df.article_time.astype(int)
-df.to_csv('../data/tjornal.csv', index=False)
-# def collect_texts_tjornal(queries):
-#     link_list = []
-#     for query in queries:
-#         print(f'Getting links for query: {query}')
-#         link_list.extend(get_links_tjornal(query))
-#
-#     container = {
-#         'article_url': [],
-#         'article_time': [],
-#         'article_title': [],
-#         # 'article_author': [],
-#         'article_content': []
-#     }
-#
-#     print('Scraping websites')
-#     for url in tqdm(set(link_list)):
-#         container = extract_articles_tjornal(url, container)
-#
-#     df = pd.DataFrame(container)
-#     df['article_time'] = df.article_time.str.slice(0, 16, 1)
-#     df.to_csv('tjornal.csv', index=False)
-request = requests.get('https://tjournal.ru/news/138980-issledovanie-tolko-tret-rossiyan-ponimayut-sut-iskusstvennogo-intellekta')
-page = html.fromstring(request.text)
+df['article_time'] = pd.to_datetime(df.article_time, unit='s')
+df.to_csv('./data/tjornal.csv', index=False)

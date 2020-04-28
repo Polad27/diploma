@@ -1,17 +1,18 @@
-import json
 import requests
 import pandas as pd
 import locale
-import os
+
 import numpy as np
 
 from urllib.parse import urljoin
 from tqdm import tqdm
 from lxml import html
-from lxml.etree import ParseError
+from config import QUERIES, DATA_SAVE_PATH
+from os.path import join
+
+tqdm.pandas()
 
 locale.setlocale(locale.LC_TIME, 'rus_rus')
-queries = ['искусственный интеллект', 'нейросети', 'машинное обучение']
 
 def get_links_nplus(query):
     search_page = html.fromstring(requests.get(f'https://nplus1.ru/search?q={query}').content)
@@ -36,7 +37,7 @@ def extract_articles_nplus(url):
         # raise Exception("Cannot scrap")
         return np.nan, np.nan, np.nan
 
-df = pd.concat([get_links_nplus(q) for q in tqdm(queries)]).drop_duplicates()
+df = pd.concat([get_links_nplus(q) for q in tqdm(QUERIES)]).drop_duplicates()
 df['article_time'], df['article_title'], df['article_content'] = zip(*df.article_url.progress_apply(extract_articles_nplus))
 df['article_time'] = pd.to_datetime(df['article_time'], unit='s')
-df.to_csv('./data/nplus.csv', index=False)
+df.to_csv(join(DATA_SAVE_PATH, 'nplus.csv'), index=False)

@@ -1,20 +1,15 @@
 import requests
 import json
 import unicodedata as unicode
-import re
 import pandas as pd
-import locale
 
 from tqdm import tqdm
+from lxml.etree import ParseError
 from lxml import html
-
+from config import QUERIES, DATA_SAVE_PATH
+from os.path import join
 
 tqdm.pandas()
-
-
-
-queries = ['искусственный интеллект', 'нейросети', 'машинное обучение']
-
 
 def get_links_tjornal(query):
     is_finished = False
@@ -32,7 +27,7 @@ def get_links_tjornal(query):
             is_finished = request_js['data']['is_finished']
             num_page += 1
 
-        except ParseError as e:
+        except ParseError:
             print(f'https://tjournal.ru/search_ajax/v2/{query}/content/relevant/{num_page} empty request')
 
     return pd.DataFrame({'article_url': queried_urls})
@@ -69,7 +64,6 @@ def extract_articles_tjornal(url):
         article_time = unicode.normalize('NFKD', article_time).split(' ')
         article_time[1] = months_dict[article_time[1]]
         article_time = pd.to_datetime(' '.join(article_time)).value * 10**-9
-        print(article_time, pd.to_datetime(article_time, unit='s'))
 
     article_content = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "content--full", " " ))] | '
                                  '//*[contains(concat( " ", @class, " " ), concat( " ", "content--full", " " ))]//p')
@@ -79,7 +73,7 @@ def extract_articles_tjornal(url):
 
 
 
-df = pd.concat([get_links_tjornal(q) for q in tqdm(queries)]).drop_duplicates()
+df = pd.concat([get_links_tjornal(q) for q in tqdm(QUERIES)]).drop_duplicates()
 df['article_time'], df['article_title'], df['article_content'] = zip(*df.article_url.progress_apply(extract_articles_tjornal))
 df['article_time'] = pd.to_datetime(df.article_time, unit='s')
-df.to_csv('./data/tjornal.csv', index=False)
+df.to_csv(join(DATA_SAVE_PATH, 'tjornal.csv'), index=False)

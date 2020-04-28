@@ -3,12 +3,14 @@ import json
 import pandas as pd
 import numpy as np
 
+from config import QUERIES, DATA_SAVE_PATH
+from os.path import join
 from tqdm import tqdm
 from lxml import html
+from multiprocessing.pool import ThreadPool
 
 
 tqdm.pandas()
-queries = ['искусственный интеллект', 'нейросети', 'машинное обучение']
 
 def get_links_rbc(query):
     isfinal = False
@@ -19,8 +21,10 @@ def get_links_rbc(query):
     limit = 100
 
     while not isfinal:
-        print(offset)
-        article_meta = requests.get(f'https://www.rbc.ru/v10/search/ajax/?query={query}&project=rbcnews|trends&offset={offset}&limit={limit}')
+        url = f'https://www.rbc.ru/v10/search/ajax/?query={query}&project=rbcnews|trends&offset={offset}&limit={limit}'
+
+        # print(offset)
+        article_meta = requests.get(url)
         article_meta = json.loads(article_meta.content)
 
         isfinal = len(article_meta['items']) < limit
@@ -38,10 +42,9 @@ def get_links_rbc(query):
 
 
 def extract_article_content_rbc(url):
-    request = requests.get(url)
-    page = html.fromstring(request.text)
-
     try:
+        request = requests.get(url)
+        page = html.fromstring(request.text)
         article_content = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "article__text__overview", " " ))]//span | //p')
         article_content = ' '.join([i.text.strip() for i in article_content if i.text is not None])
         return article_content
@@ -49,5 +52,7 @@ def extract_article_content_rbc(url):
         print(f'Cannot scrap: {url}')
         return np.nan
 
-df = pd.concat([get_links_rbc(q) for q in tqdm(queries)]).drop_duplicates()
-df['article_content'] = df.article_url.progress_apply(extract_article_content_rbc)
+pool = ThreadPool()
+df = pd.concat([get_links_rbc(q) for q in tqdm(QUERIES)]).drop_duplicates()
+df['article_content'] = pool.map(extract_article_content_rbc, df.article_url.values)
+df.to_csv(join(DATA_SAVE_PATH, 'rbc.csv'), index=False)

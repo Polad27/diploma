@@ -58,7 +58,6 @@ def extract_articles_tjornal(url):
     article_title = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "content-header__title", " " ))]')[0].text.strip()
     try:
         article_time = int(page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "time", " " ))]')[0].get('data-date'))
-        print(article_time)
     except:
         article_time = page.xpath('//*[contains(concat( " ", @class, " " ), concat( " ", "time", " " ))]')[0].text
         article_time = unicode.normalize('NFKD', article_time).split(' ')
@@ -76,4 +75,5 @@ def extract_articles_tjornal(url):
 df = pd.concat([get_links_tjornal(q) for q in tqdm(QUERIES)]).drop_duplicates()
 df['article_time'], df['article_title'], df['article_content'] = zip(*df.article_url.progress_apply(extract_articles_tjornal))
 df['article_time'] = pd.to_datetime(df.article_time, unit='s')
+# df.to_csv('../data/tjornal.csv', index=False)
 df.to_csv(join(DATA_SAVE_PATH, 'tjornal.csv'), index=False)
